@@ -1124,11 +1124,14 @@ function formatIsoDateLocal(dt) {
     return `${y}-${m}-${d}`;
 }
 
-function formatShortDayMonth(isoDateStr) {
-    const [y, m, d] = isoDateStr.split("-");
-    return `${d}/${m}`;
+function formatShortDayMonth(dateStr) {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const day = parseInt(parts[2], 10);
+    const month = parseInt(parts[1], 10);
+    return `${day}/${month}`;
 }
-
 async function loadRecordsForDateRange(cls, startDateStr, endDateStr) {
     if (!cls || !startDateStr || !endDateStr) return;
 
@@ -1570,16 +1573,78 @@ async function toggleWeeklyReport() {
         await renderWeeklySummaryTable();
     }
 }
+function populateMonthWeekOptions(dateVal) {
+    const selectEl = document.getElementById("weekOffsetSelect");
+    if (!selectEl || !dateVal) return;
 
+    const [yearStr, monthStr] = dateVal.split("-");
+    const targetYear = parseInt(yearStr, 10);
+    const targetMonth = parseInt(monthStr, 10); // 1 - 12
+
+    // نبحث عن أوفست الأسابيع من -6 إلى +2 بالنسبة للتاريخ المحدد لتغطية الشهر بالكامل
+    const candidates = [];
+    const seenRanges = new Set();
+
+    for (let offset = -6; offset <= 2; offset++) {
+        const range = getWeekDatesRange(dateVal, offset);
+        const sunToThu = range.dates.slice(0, 5);
+        const sunDate = sunToThu[0];
+        const thuDate = sunToThu[4];
+
+        // نتحقق هل يقع الأحد أو الخميس (أو أي يوم من الأحد للخميس) داخل الشهر المختار
+        const overlapsMonth = sunToThu.some(dStr => {
+            const [y, m] = dStr.split("-").map(Number);
+            return y === targetYear && m === targetMonth;
+        });
+
+        const rangeKey = `${sunDate}_${thuDate}`;
+        if (overlapsMonth && !seenRanges.has(rangeKey)) {
+            seenRanges.add(rangeKey);
+            candidates.push({
+                offset,
+                sunDate,
+                thuDate,
+                label: `${formatShortDayMonth(sunDate)} – ${formatShortDayMonth(thuDate)} (Sun–Thu)`
+            });
+        }
+    }
+
+    // نرتب الأسابيع تصاعدياً من بداية الشهر إلى نهايته
+    candidates.sort((a, b) => a.sunDate.localeCompare(b.sunDate));
+
+    const prevValue = selectEl.value;
+    selectEl.innerHTML = "";
+
+    candidates.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = String(item.offset);
+        opt.textContent = item.label;
+        if (item.offset === 0) {
+            opt.textContent += " [Current]";
+        }
+        selectEl.appendChild(opt);
+    });
+
+    // نحتفظ بالاختيار السابق إن كان موجوداً، وإلا نختار الأسبوع الحالي (0) أو أول أسبوع متاح
+    const hasPrev = Array.from(selectEl.options).some(o => o.value === prevValue);
+    if (hasPrev) {
+        selectEl.value = prevValue;
+    } else {
+        const hasCurrent = Array.from(selectEl.options).some(o => o.value === "0");
+        selectEl.value = hasCurrent ? "0" : (selectEl.options[0]?.value || "0");
+    }
+}
 async function renderWeeklySummaryTable() {
     const cls = document.getElementById("classSelect").value;
     const dateVal = document.getElementById("dateInput").value;
-    const weekOffset = parseInt(document.getElementById("weekOffsetSelect").value || "0", 10);
     const container = document.getElementById("weeklyTableContainer");
     const rangeLabel = document.getElementById("weeklyRangeLabel");
 
     if (!cls || !dateVal) return;
 
+    populateMonthWeekOptions(dateVal);
+
+    const weekOffset = parseInt(document.getElementById("weekOffsetSelect").value || "0", 10);
     const { startIso, endIso, dates } = getWeekDatesRange(dateVal, weekOffset);
     rangeLabel.textContent = `Class: ${cls}  |  Week: ${startIso} to ${endIso}`;
 
