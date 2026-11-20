@@ -536,7 +536,7 @@
 
     <div id="mainAttendanceSection">
         <div class="controls">
-            <select id="classSelect" onchange="onFilterChange()"></select>
+            <select id="classSelect" onchange="()"></select>
             <input type="date" id="dateInput" onchange="onFilterChange()">
         </div>
 
@@ -1352,15 +1352,14 @@ function getMonthlyStatsForClass(cls, dateVal) {
 async function onFilterChange() {
     const allowed = getAllowedClassesForCurrentUser();
     const classSelect = document.getElementById("classSelect");
+    const dateVal = document.getElementById("dateInput").value;
     let cls = classSelect.value;
 
     if (allowed.length > 0 && !allowed.includes(cls)) {
         cls = allowed[0];
         classSelect.value = cls;
     }
-const { startIso, endIso } = getWeekDatesRange(dateVal, 0);
-await loadRecordsForDateRange(cls, startIso, endIso);
-    const dateVal = document.getElementById("dateInput").value;
+
     syncManagerTextareaWithCurrentClass(true);
 
     if (!cls) {
@@ -1370,6 +1369,10 @@ await loadRecordsForDateRange(cls, startIso, endIso);
     }
 
     await loadMonthRecords(cls, dateVal);
+
+    const { startIso, endIso } = getWeekDatesRange(dateVal, 0);
+    await loadRecordsForDateRange(cls, startIso, endIso);
+
     applyDayStateFromRecord(monthRecordsCache[dateVal] || null);
     renderStudents();
 
