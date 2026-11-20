@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Attendance — Weekly Table & Cloud Sync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 12px;
+            color: #0f172a;
+        }
+        .app {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .role-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #334155;
+            font-weight: bold;
+        }
+        .role-switcher {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+        .role-switcher select, .role-switcher input {
+            padding: 6px 8px;
+            font-size: 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            width: auto;
+        }
+        .btn-login {
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-logout {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .manage-btn {
+            background: #334155;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+.btn-scroll-bottom {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.btn-scroll-bottom:hover {
+    background: #bae6fd;
+}
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        select, input[type="date"], input[type="text"], input[type="password"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            box-sizing: border-box;
+            background: #fff;
+            font-family: inherit;
+        }
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .absent-count { color: #dc2626; }
+        .present-count { color: #16a34a; }
+        .student-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #fff;
+            transition: background 0.15s;
+        }
+.student-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.weekly-absence-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.weekly-absence-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9f1239;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+        .student-row.is-absent {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+        .student-main {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+        .student-name {
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .excuse-select {
+            width: auto;
+            max-width: 155px;
+            padding: 5px 8px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 7px;
+            border: 1px solid #fca5a5;
+            background: #fff;
+            color: #7f1d1d;
+        }
+        .reason-tag-readonly {
+            font-size: 12px;
+            font-weight: bold;
+            color: #991b1b;
+        }
+        .monthly-summary {
+            min-width: 125px;
+            max-width: 185px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #991b1b;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-radius: 7px;
+            padding: 5px 7px;
+            text-align: left;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .monthly-summary.is-empty {
+            background: transparent;
+            border-color: transparent;
+            color: transparent;
+        }
+        .status-btn {
+            border: none;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 96px;
+            flex-shrink: 0;
+        }
+        .btn-present {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .btn-absent {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .footer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .save-btn {
+            grid-column: span 2;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 13px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .weekly-btn {
+            grid-column: span 2;
+            background: #0f766e;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .secondary-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+            border: none;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #reportArea {
+            margin-top: 14px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            white-space: pre-line;
+            font-size: 14px;
+            display: none;
+        }
+        .weekly-panel {
+            display: none;
+            margin-top: 14px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .weekly-panel.open {
+            display: block;
+        }
+        .weekly-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .weekly-table-wrap {
+            overflow-x: auto;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        table.weekly-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 580px;
+        }
+        table.weekly-table th, table.weekly-table td {
+            border: 1px solid #cbd5e1;
+            padding: 9px 10px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        table.weekly-table th {
+            background: #1e293b;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .pill-excused {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .pill-noexcuse {
+            display: inline-block;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .dates-sub {
+            font-size: 12px;
+            color: #334155;
+            font-weight: bold;
+        }
+        .manager-panel {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+        .manager-panel.open {
+            display: block;
+        }
+        .manager-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-green {
+            background: #16a34a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-blue-sm {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-small-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 9px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .status-note {
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+        .teacher-box {
+            border-top: 1px solid #cbd5e1;
+            margin-top: 14px;
+            padding-top: 12px;
+        }
+        .classes-checks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            margin: 8px 0 10px 0;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .classes-checks label {
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .teacher-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .lock-screen {
+            text-align: center;
+            padding: 24px 12px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            margin: 12px 0;
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="app">
+    <div class="top-bar">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h2>📋 Class Attendance</h2>
+        <span id="roleBadge" class="role-badge">Teacher</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-scroll-bottom" onclick="scrollToBottom()">↓ Bottom</button>
+        <button type="button" id="adminManageBtn" class="manage-btn" style="display:none;" onclick="toggleManager()">⚙️ Classes, Students & Teachers</button>
+    </div>
+</div>
+
+    <div class="role-switcher">
+        <span>Role:</span>
+        <select id="roleSelect" onchange="onRoleSelectChange()">
+            <option value="teacher">Teacher</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+        </select>
+
+        <select id="teacherAccountSelect" style="display:none; width:auto;">
+            <option value="">-- Select Teacher --</option>
+        </select>
+
+        <input type="password" id="rolePinInput" placeholder="Enter PIN / Key" style="display:none; width:130px;">
+        <button type="button" id="roleLoginBtn" class="btn-login" style="display:none;" onclick="applyRoleLogin()">Enter</button>
+        <button type="button" id="logoutBtn" class="btn-logout" style="display:none;" onclick="logoutSession()">Switch / Lock</button>
+    </div>
+
+    <div id="syncStatus" class="status-note">Status: Ready for cloud sync</div>
+
+    <!-- Admin-only panel -->
+    <div id="managerPanel" class="manager-panel">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px;">Manage Classes & Student Lists (Admin)</h3>
+
+        <div class="manager-row">
+            <input type="text" id="newClassNameInput" placeholder="New class name (e.g., 10Z)" style="flex:1; min-width:180px;">
+            <button type="button" class="btn-green" onclick="addNewClass()">+ Add Class</button>
+        </div>
+
+        <div style="border-top: 1px solid #cbd5e1; margin-top: 12px; padding-top: 12px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 14px; color: #1e293b;">
+                ✏️ Edit Students of Existing Classes (Select a class from the class dropdown first)
+            </h4>
+            <div class="manager-row" style="margin-bottom: 8px;">
+                <button type="button" class="secondary-btn" style="padding:7px 12px; font-size:12px;" onclick="loadSelectedClassIntoEditor()">
+                    📂 Load Selected Class Students
+                </button>
+                <button type="button" class="secondary-btn" style="padding:7px 12px; font-size:12px;" onclick="clearRosterEditor()">
+                    🧹 Clear Box
+                </button>
+            </div>
+            <label id="rosterEditorLabel" style="display:block; font-size:13px; font-weight:bold; margin-bottom:6px;">
+                Students in selected class (one student per line):
+            </label>
+            <textarea id="studentsBulkTextarea" rows="6" placeholder="Select a class above and click 'Load Selected Class Students', or paste student names here..."></textarea>
+
+            <div class="manager-row" style="margin-top: 10px;">
+                <button type="button" class="btn-green" onclick="saveClassStudentsList()">💾 Save Roster to Cloud</button>
+                <button type="button" class="secondary-btn" onclick="toggleManager()">Close</button>
+            </div>
+        </div>
+
+        <div class="teacher-box">
+            <h3 style="margin: 0 0 8px 0; font-size: 15px;">Teachers Access Keys & Assigned Classes</h3>
+            <div class="manager-row">
+                <input type="text" id="teacherNameInput" placeholder="Teacher name" style="flex:1; min-width:150px;">
+                <input type="text" id="teacherPinInput" placeholder="Access PIN" style="width:140px;">
+            </div>
+            <div style="font-size:12px; font-weight:bold; color:#334155;">Allowed classes for this teacher:</div>
+            <div id="teacherClassesCheckboxes" class="classes-checks"></div>
+            <div class="manager-row">
+                <button type="button" class="btn-green" onclick="saveTeacherAccount()">+ Save / Update Teacher</button>
+            </div>
+            <div id="teachersListContainer"></div>
+        </div>
+    </div>
+    <div id="teacherLockScreen" class="lock-screen" style="display:none;">
+        <div style="font-size:15px; font-weight:bold; margin-bottom:6px;">Teacher Access Required</div>
+        <div style="font-size:13px; color:#475569;">Select your position and enter your PIN key above. Once logged in, this browser will remember your session.</div>
+    </div>
+
+    <div id="mainAttendanceSection">
+        <div class="controls">
+            <select id="classSelect" onchange="onFilterChange()"></select>
+            <input type="date" id="dateInput" onchange="onFilterChange()">
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search student by name..." oninput="renderStudents()">
+        </div>
+
+        <div class="stats">
+            <span>Total: <span id="totalCount">0</span></span>
+            <span class="present-count">Present: <span id="presentCount">0</span></span>
+            <span class="absent-count">Absent: <span id="absentCount">0</span></span>
+        </div>
+
+        <div id="studentsList"></div>
+
+        <div class="footer-actions">
+            <button type="button" class="save-btn" onclick="saveAttendance()">💾 Save Attendance</button>
+            <button type="button" class="weekly-btn" onclick="toggleWeeklyReport()">📊 Weekly Absence Summary Table</button>
+            <button type="button" class="secondary-btn" onclick="copyAbsentReport()">📋 Copy Daily Report</button>
+            <button type="button" class="secondary-btn" onclick="resetAllPresent()">↺ All Present</button>
+        </div>
+
+        <div id="weeklyPanel" class="weekly-panel">
+            <div class="weekly-header">
+                <div>
+                    <strong style="font-size:15px;">📊 Weekly Absence Summary</strong>
+                    <div id="weeklyRangeLabel" class="dates-sub"></div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <select id="weekOffsetSelect" style="width:auto; padding:6px 10px; font-size:13px;" onchange="renderWeeklySummaryTable()">
+                        <option value="0">Current Week (Sun–Sat)</option>
+                        <option value="-1">Previous Week</option>
+                        <option value="-2">2 Weeks Ago</option>
+                        <option value="-3">3 Weeks Ago</option>
+                    </select>
+                    <button type="button" class="btn-green" style="padding:8px 12px; font-size:12px;" onclick="copyWeeklyFormattedTable()">📋 Copy Table</button>
+                    <button type="button" class="btn-blue-sm" onclick="printWeeklyReport()">🖨️ Print / Save PDF</button>
+                </div>
+            </div>
+            <div id="weeklyTableContainer" class="weekly-table-wrap"></div>
+        </div>
+
+        <div id="reportArea"></div>
+    </div>
+</div>
+
+<script>
+const SUPERVISOR_PIN = "2222";
+const ADMIN_PIN = "1451";
+
+let currentRole = "teacher";
+let activeTeacherId = null;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARdDa8XLVBFmM729RU4nHv8XPqIepM9HA",
+  authDomain: "absence-b977f.firebaseapp.com",
+  projectId: "absence-b977f",
+  storageBucket: "absence-b977f.firebasestorage.app",
+  messagingSenderId: "167703258687",
+  appId: "1:167703258687:web:f8feebc7bb06ec7157fa8a"
+};
+
+let db = null;
+if (typeof firebase !== "undefined" && firebaseConfig.projectId) {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+}
+
+const defaultClassesData = {
+    "Grade 10 - A": ["Ahmed Mahmoud", "Ibrahim Hassan", "Adam Tarek", "Seif El-Din Mohamed", "Omar Khaled", "Youssef Ashraf"],
+    "Grade 11 - B": ["Ziad Amr", "Karim Walid", "Marwan Hany", "Mostafa Adel", "Nader Samy"]
+};
+
+const defaultTeachersData = {
+    "t_1": {
+        id: "t_1",
+        name: "Teacher 1",
+        pin: "1111",
+        classes: ["Grade 10 - A"]
+    }
+};
+
+const CLASSES_CACHE_KEY = "cloud_attendance_classes_v2";
+const TEACHERS_CACHE_KEY = "cloud_attendance_teachers_v2";
+const SESSION_STORAGE_KEY = "cloud_attendance_session_v2";
+
+let classesData = {};
+let teachersData = {};
+let absenceState = {};
+let monthRecordsCache = {};
+let lastWeeklyHtmlExport = "";
+
+function canManageRoster() {
+    return currentRole === "admin";
+}
+
+function canEditExcuseReason() {
+    return currentRole === "supervisor" || currentRole === "admin";
+}
+
+function getActiveTeacher() {
+    if (currentRole !== "teacher" || !activeTeacherId) return null;
+    return teachersData[activeTeacherId] || null;
+}
+
+function getAllowedClassesForCurrentUser() {
+    const allClassNames = Object.keys(classesData);
+    if (currentRole === "admin" || currentRole === "supervisor") {
+        return allClassNames;
+    }
+    const teacher = getActiveTeacher();
+    if (!teacher) return [];
+    return (teacher.classes || []).filter(cls => classesData[cls] !== undefined);
+}
+
+function setSyncStatus(msg) {
+    const el = document.getElementById("syncStatus");
+    if (el) el.textContent = msg;
+}
+
+function saveSessionToBrowser() {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+        role: currentRole,
+        teacherId: activeTeacherId
+    }));
+}
+
+function loadSessionFromBrowser() {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return;
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.role === "admin" || parsed.role === "supervisor" || parsed.role === "teacher")) {
+            currentRole = parsed.role;
+            activeTeacherId = parsed.teacherId || null;
+        }
+    } catch (e) {}
+}
+
+
+
+
+
+function scrollToBottom() {
+    window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth"
+    });
+}
+
+function logoutSession() {
+    activeTeacherId = null;
+    currentRole = "teacher";
+    saveSessionToBrowser();
+    document.getElementById("roleSelect").value = "teacher";
+    onRoleSelectChange();
+    applyRoleUI();
+    populateClassSelect();
+    onFilterChange();
+}
+
+function onRoleSelectChange() {
+    const selected = document.getElementById("roleSelect").value;
+    const teacherSel = document.getElementById("teacherAccountSelect");
+    const pinInput = document.getElementById("rolePinInput");
+    const loginBtn = document.getElementById("roleLoginBtn");
+
+    if (teacherSel) teacherSel.style.display = "none";
+    pinInput.value = "";
+    pinInput.style.display = "inline-block";
+    loginBtn.style.display = "inline-block";
+
+    if (selected === "teacher") {
+        pinInput.placeholder = "Enter Teacher PIN";
+    } else if (selected === "admin") {
+        pinInput.placeholder = "Admin PIN";
+    } else {
+        pinInput.placeholder = "Supervisor PIN";
+    }
+}
+
+function applyRoleLogin() {
+    const selected = document.getElementById("roleSelect").value;
+    const pin = document.getElementById("rolePinInput").value.trim();
+
+    if (!pin) {
+        alert("Please enter your PIN first.");
+        return;
+    }
+
+    if (selected === "supervisor") {
+        if (pin !== SUPERVISOR_PIN) {
+            alert("Wrong Supervisor PIN.");
+            return;
+        }
+        currentRole = "supervisor";
+        activeTeacherId = null;
+    } else if (selected === "admin") {
+        if (pin !== ADMIN_PIN) {
+            alert("Wrong Admin PIN.");
+            return;
+        }
+        currentRole = "admin";
+        activeTeacherId = null;
+    } else if (selected === "teacher") {
+        const matchedTeacher = Object.values(teachersData).find(
+            t => t && String(t.pin).trim() === pin
+        );
+        if (!matchedTeacher) {
+            alert("Invalid Teacher PIN.");
+            return;
+        }
+        currentRole = "teacher";
+        activeTeacherId = matchedTeacher.id;
+    }
+
+    saveSessionToBrowser();
+    document.getElementById("rolePinInput").value = "";
+    applyRoleUI();
+    populateClassSelect();
+    onFilterChange();
+}
+
+function applyRoleUI() {
+    const badge = document.getElementById("roleBadge");
+    const adminBtn = document.getElementById("adminManageBtn");
+    const panel = document.getElementById("managerPanel");
+    const roleSelect = document.getElementById("roleSelect");
+    const teacherSel = document.getElementById("teacherAccountSelect");
+    const pinInput = document.getElementById("rolePinInput");
+    const loginBtn = document.getElementById("roleLoginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const lockScreen = document.getElementById("teacherLockScreen");
+    const mainSection = document.getElementById("mainAttendanceSection");
+
+    roleSelect.value = currentRole;
+    if (teacherSel) teacherSel.style.display = "none";
+
+    if (currentRole === "admin") {
+        badge.textContent = "Admin";
+        badge.style.background = "#dbeafe";
+        badge.style.color = "#1e40af";
+        adminBtn.style.display = "inline-block";
+        pinInput.style.display = "none";
+        loginBtn.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+        lockScreen.style.display = "none";
+        mainSection.style.display = "block";
+        syncManagerTextareaWithCurrentClass(false);
+        renderTeacherManagerUI();
+    } else if (currentRole === "supervisor") {
+        badge.textContent = "Supervisor";
+        badge.style.background = "#fef3c7";
+        badge.style.color = "#92400e";
+        adminBtn.style.display = "none";
+        panel.classList.remove("open");
+        pinInput.style.display = "none";
+        loginBtn.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+        lockScreen.style.display = "none";
+        mainSection.style.display = "block";
+    } else {
+        const teacher = getActiveTeacher();
+        adminBtn.style.display = "none";
+        panel.classList.remove("open");
+
+        if (teacher) {
+            badge.textContent = `Teacher: ${teacher.name}`;
+            badge.style.background = "#dcfce7";
+            badge.style.color = "#166534";
+            pinInput.style.display = "none";
+            loginBtn.style.display = "none";
+            logoutBtn.style.display = "inline-block";
+            lockScreen.style.display = "none";
+            mainSection.style.display = "block";
+        } else {
+            badge.textContent = "Teacher (Locked)";
+            badge.style.background = "#e2e8f0";
+            badge.style.color = "#334155";
+            pinInput.style.display = "inline-block";
+            pinInput.placeholder = "Enter Teacher PIN";
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+            lockScreen.style.display = "block";
+            mainSection.style.display = "none";
+        }
+    }
+}
+async function loadClassesAndTeachersData() {
+    const cachedClasses = localStorage.getItem(CLASSES_CACHE_KEY);
+    let fallbackClasses = JSON.parse(JSON.stringify(defaultClassesData));
+    if (cachedClasses) {
+        try {
+            const parsed = JSON.parse(cachedClasses);
+            if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+                fallbackClasses = parsed;
+            }
+        } catch (e) {}
+    }
+
+    const cachedTeachers = localStorage.getItem(TEACHERS_CACHE_KEY);
+    let fallbackTeachers = JSON.parse(JSON.stringify(defaultTeachersData));
+    if (cachedTeachers) {
+        try {
+            const parsedT = JSON.parse(cachedTeachers);
+            if (parsedT && typeof parsedT === "object" && Object.keys(parsedT).length > 0) {
+                fallbackTeachers = parsedT;
+            }
+        } catch (e) {}
+    }
+
+    if (db) {
+        try {
+            const docRef = db.collection("SchoolSettings").doc("ClassesData");
+            const doc = await docRef.get();
+
+            if (doc.exists && doc.data()) {
+                const d = doc.data();
+                classesData = (d.classes && typeof d.classes === "object") ? d.classes : fallbackClasses;
+                teachersData = (d.teachers && typeof d.teachers === "object") ? d.teachers : fallbackTeachers;
+                localStorage.setItem(CLASSES_CACHE_KEY, JSON.stringify(classesData));
+                localStorage.setItem(TEACHERS_CACHE_KEY, JSON.stringify(teachersData));
+                setSyncStatus("Status: Connected to Cloud Database ✓");
+                return;
+            } else {
+                classesData = fallbackClasses;
+                teachersData = fallbackTeachers;
+                await docRef.set({
+                    classes: classesData,
+                    teachers: teachersData,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                localStorage.setItem(CLASSES_CACHE_KEY, JSON.stringify(classesData));
+                localStorage.setItem(TEACHERS_CACHE_KEY, JSON.stringify(teachersData));
+                setSyncStatus("Status: Connected to Cloud Database ✓ (Initialized)");
+                return;
+            }
+        } catch (e) {
+            console.error("Firestore connection error:", e);
+            classesData = fallbackClasses;
+            teachersData = fallbackTeachers;
+            setSyncStatus("Status: Cloud error — check Console / Firestore Rules");
+            return;
+        }
+    }
+
+    classesData = fallbackClasses;
+    teachersData = fallbackTeachers;
+    setSyncStatus("Status: Local preview mode");
+}
+
+async function persistSchoolSettings() {
+    localStorage.setItem(CLASSES_CACHE_KEY, JSON.stringify(classesData));
+    localStorage.setItem(TEACHERS_CACHE_KEY, JSON.stringify(teachersData));
+    if (db) {
+        await db.collection("SchoolSettings").doc("ClassesData").set({
+            classes: classesData,
+            teachers: teachersData,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+    }
+}
+
+function populateClassSelect(selectedClass = "") {
+    const classSelect = document.getElementById("classSelect");
+    const allowedClasses = getAllowedClassesForCurrentUser();
+    const currentVal = selectedClass || classSelect.value;
+
+    classSelect.innerHTML = "";
+    allowedClasses.forEach(cls => {
+        const opt = document.createElement("option");
+        opt.value = cls;
+        opt.textContent = cls;
+        classSelect.appendChild(opt);
+    });
+
+    if (currentVal && allowedClasses.includes(currentVal)) {
+        classSelect.value = currentVal;
+    } else if (allowedClasses.length > 0) {
+        classSelect.value = allowedClasses[0];
+    }
+}
+
+let rosterManuallyLoaded = false;
+
+function toggleManager() {
+    if (!canManageRoster()) return;
+    const panel = document.getElementById("managerPanel");
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) {
+        // Keep students hidden until Admin explicitly loads or selects a class
+        if (!rosterManuallyLoaded) {
+            clearRosterEditor();
+        }
+        renderTeacherManagerUI();
+    }
+}
+
+function loadSelectedClassIntoEditor() {
+    if (!canManageRoster()) return;
+    const cls = document.getElementById("classSelect").value;
+    const list = classesData[cls] || [];
+    rosterManuallyLoaded = true;
+    document.getElementById("rosterEditorLabel").textContent =
+        `Students in existing class (${cls}) — one student per line:`;
+    document.getElementById("studentsBulkTextarea").value = list.join("\n");
+}
+
+function clearRosterEditor() {
+    const cls = document.getElementById("classSelect").value;
+    rosterManuallyLoaded = false;
+    document.getElementById("rosterEditorLabel").textContent =
+        `Students in selected class (${cls || "None"}) — click 'Load Selected Class Students' to view/edit:`;
+    document.getElementById("studentsBulkTextarea").value = "";
+}
+
+function syncManagerTextareaWithCurrentClass(forceLoad = false) {
+    if (!canManageRoster()) return;
+    const cls = document.getElementById("classSelect").value;
+    if (forceLoad || rosterManuallyLoaded) {
+        const list = classesData[cls] || [];
+        document.getElementById("rosterEditorLabel").textContent =
+            `Students in existing class (${cls}) — one student per line:`;
+        document.getElementById("studentsBulkTextarea").value = list.join("\n");
+    } else {
+        document.getElementById("rosterEditorLabel").textContent =
+            `Students in selected class (${cls || "None"}) — click 'Load Selected Class Students' to view/edit:`;
+    }
+}
+
+async function addNewClass() {
+    if (!canManageRoster()) return;
+    const input = document.getElementById("newClassNameInput");
+    const newName = input.value.trim();
+    if (!newName) {
+        alert("Please enter a class name first.");
+        return;
+    }
+    if (classesData[newName]) {
+        alert("This class already exists.");
+        return;
+    }
+    classesData[newName] = [];
+    await persistSchoolSettings();
+    input.value = "";
+    populateClassSelect(newName);
+    syncManagerTextareaWithCurrentClass();
+    renderTeacherManagerUI();
+    await onFilterChange();
+}
+
+async function saveClassStudentsList() {
+    if (!canManageRoster()) return;
+    const cls = document.getElementById("classSelect").value;
+    if (!cls) return;
+
+    const rawLines = document.getElementById("studentsBulkTextarea").value.split(/\r?\n/);
+    const cleanedNames = rawLines
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+    classesData[cls] = cleanedNames;
+    await persistSchoolSettings();
+    renderStudents();
+    alert(`Saved (${cls}) with ${cleanedNames.length} student(s).`);
+}
+
+function renderTeacherManagerUI() {
+    if (!canManageRoster()) return;
+    const checksBox = document.getElementById("teacherClassesCheckboxes");
+    const allClassNames = Object.keys(classesData);
+
+    checksBox.innerHTML = "";
+    if (!allClassNames.length) {
+        checksBox.innerHTML = `<span style="font-size:12px; color:#64748b;">No classes available yet.</span>`;
+    } else {
+        allClassNames.forEach(cls => {
+            const safeId = `chk_${btoa(unescape(encodeURIComponent(cls))).replace(/[^a-zA-Z0-9]/g, "")}`;
+            const label = document.createElement("label");
+            label.setAttribute("for", safeId);
+            label.innerHTML = `<input type="checkbox" id="${safeId}" value="${cls.replace(/"/g, "&quot;")}"> ${cls}`;
+            checksBox.appendChild(label);
+        });
+    }
+
+    const listContainer = document.getElementById("teachersListContainer");
+    const teachersArr = Object.values(teachersData);
+    listContainer.innerHTML = "";
+
+    teachersArr.forEach(t => {
+        const row = document.createElement("div");
+        row.className = "teacher-item";
+        const clsText = (t.classes && t.classes.length) ? t.classes.join(", ") : "No classes";
+        row.innerHTML = `
+            <div>
+                <strong>${t.name}</strong> — PIN: <code>${t.pin}</code><br>
+                <span style="color:#475569; font-size:12px;">Classes: ${clsText}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button type="button" class="secondary-btn" style="padding:5px 9px; font-size:12px;" onclick="editTeacherForm('${t.id}')">Edit</button>
+                <button type="button" class="btn-small-danger" onclick="deleteTeacherAccount('${t.id}')">Delete</button>
+            </div>
+        `;
+        listContainer.appendChild(row);
+    });
+}
+
+function editTeacherForm(id) {
+    const t = teachersData[id];
+    if (!t) return;
+    document.getElementById("teacherNameInput").value = t.name;
+    document.getElementById("teacherPinInput").value = t.pin;
+    const boxes = document.querySelectorAll("#teacherClassesCheckboxes input[type='checkbox']");
+    boxes.forEach(box => {
+        box.checked = Array.isArray(t.classes) && t.classes.includes(box.value);
+    });
+}
+
+async function saveTeacherAccount() {
+    if (!canManageRoster()) return;
+    const name = document.getElementById("teacherNameInput").value.trim();
+    const pin = document.getElementById("teacherPinInput").value.trim();
+    if (!name || !pin) {
+        alert("Please enter both teacher name and PIN key.");
+        return;
+    }
+
+    const selectedClasses = [];
+    document.querySelectorAll("#teacherClassesCheckboxes input[type='checkbox']:checked").forEach(box => {
+        selectedClasses.push(box.value);
+    });
+
+    const existing = Object.values(teachersData).find(t => t.name.toLowerCase() === name.toLowerCase());
+    const id = existing ? existing.id : ("t_" + Date.now());
+
+    teachersData[id] = {
+        id: id,
+        name: name,
+        pin: pin,
+        classes: selectedClasses
+    };
+
+    await persistSchoolSettings();
+    document.getElementById("teacherNameInput").value = "";
+    document.getElementById("teacherPinInput").value = "";
+    document.querySelectorAll("#teacherClassesCheckboxes input[type='checkbox']").forEach(b => b.checked = false);
+
+    populateTeacherDropdown();
+    renderTeacherManagerUI();
+    alert(`Saved teacher "${name}" with ${selectedClasses.length} class(es).`);
+}
+
+async function deleteTeacherAccount(id) {
+    if (!canManageRoster()) return;
+    if (!teachersData[id]) return;
+    delete teachersData[id];
+    if (activeTeacherId === id) {
+        activeTeacherId = null;
+        saveSessionToBrowser();
+    }
+    await persistSchoolSettings();
+    populateTeacherDropdown();
+    renderTeacherManagerUI();
+}
+
+function getRecordDocId(cls, dateVal) {
+    return `${encodeURIComponent(cls)}_${dateVal}`;
+}
+
+function getLocalDayKey(cls, dateVal) {
+    return `attendance_record_v2_${cls}_${dateVal}`;
+}
+
+function parseIsoDateLocal(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function formatIsoDateLocal(dt) {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const d = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function formatShortDayMonth(isoDateStr) {
+    const [y, m, d] = isoDateStr.split("-");
+    return `${d}/${m}`;
+}
+
+async function loadRecordsForDateRange(cls, startDateStr, endDateStr) {
+    if (!cls || !startDateStr || !endDateStr) return;
+
+    const startDt = parseIsoDateLocal(startDateStr);
+    const endDt = parseIsoDateLocal(endDateStr);
+    const monthsToLoad = new Set();
+
+    const cursor = new Date(startDt.getTime());
+    while (cursor <= endDt) {
+        monthsToLoad.add(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (db) {
+        try {
+            for (const mKey of monthsToLoad) {
+                const snap = await db.collection("AttendanceRecords")
+                    .where("className", "==", cls)
+                    .where("monthKey", "==", mKey)
+                    .get();
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data && data.date) {
+                        monthRecordsCache[data.date] = data;
+                    }
+                });
+            }
+            return;
+        } catch (e) {
+            console.error("Error loading range records from Firestore:", e);
+        }
+    }
+
+    const scanCursor = new Date(startDt.getTime());
+    while (scanCursor <= endDt) {
+        const dayStr = formatIsoDateLocal(scanCursor);
+        const raw = localStorage.getItem(getLocalDayKey(cls, dayStr));
+        if (raw) {
+            try {
+                monthRecordsCache[dayStr] = JSON.parse(raw);
+            } catch (e) {}
+        }
+        scanCursor.setDate(scanCursor.getDate() + 1);
+    }
+}
+
+async function loadMonthRecords(cls, dateVal) {
+    monthRecordsCache = {};
+    if (!cls || !dateVal) return;
+
+    const parts = dateVal.split("-");
+    if (parts.length < 2) return;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const monthKey = `${parts[0]}-${parts[1]}`;
+
+    if (db) {
+        try {
+            const snap = await db.collection("AttendanceRecords")
+                .where("className", "==", cls)
+                .where("monthKey", "==", monthKey)
+                .get();
+
+            snap.forEach(doc => {
+                const data = doc.data();
+                if (data && data.date) {
+                    monthRecordsCache[data.date] = data;
+                }
+            });
+            return;
+        } catch (e) {
+            console.error("Error loading month records from Firestore:", e);
+        }
+    }
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const raw = localStorage.getItem(getLocalDayKey(cls, dayStr));
+        if (raw) {
+            try {
+                monthRecordsCache[dayStr] = JSON.parse(raw);
+            } catch (e) {}
+        }
+    }
+}
+
+function applyDayStateFromRecord(record) {
+    absenceState = {};
+    if (!record || !Array.isArray(record.absentees)) return;
+    record.absentees.forEach(item => {
+        if (item && item.name) {
+            absenceState[item.name] = {
+                absent: true,
+                reason: item.reason || "no Excuse"
+            };
+        }
+    });
+}
+
+async function init() {
+    loadSessionFromBrowser();
+
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("dateInput").value = today;
+
+    await loadClassesAndTeachersData();
+
+    if (currentRole === "teacher" && activeTeacherId && !teachersData[activeTeacherId]) {
+        activeTeacherId = null;
+        saveSessionToBrowser();
+    }
+
+    applyRoleUI();
+    populateClassSelect();
+    await onFilterChange();
+}
+
+async function onFilterChange() {
+    const allowed = getAllowedClassesForCurrentUser();
+    const classSelect = document.getElementById("classSelect");
+    let cls = classSelect.value;
+
+    if (allowed.length > 0 && !allowed.includes(cls)) {
+        cls = allowed[0];
+        classSelect.value = cls;
+    }
+const { startIso, endIso } = getWeekDatesRange(dateVal, 0);
+await loadRecordsForDateRange(cls, startIso, endIso);
+    const dateVal = document.getElementById("dateInput").value;
+    syncManagerTextareaWithCurrentClass(true);
+
+    if (!cls) {
+        absenceState = {};
+        renderStudents();
+        return;
+    }
+
+    await loadMonthRecords(cls, dateVal);
+    applyDayStateFromRecord(monthRecordsCache[dateVal] || null);
+    renderStudents();
+
+    if (document.getElementById("weeklyPanel").classList.contains("open")) {
+        await renderWeeklySummaryTable();
+    }
+}
+
+function resetAllPresent() {
+    absenceState = {};
+    renderStudents();
+}
+
+function toggleStudent(name) {
+    const current = absenceState[name];
+    if (current && current.absent) {
+        absenceState[name] = { absent: false, reason: "no Excuse" };
+    } else {
+        absenceState[name] = {
+            absent: true,
+            reason: (current && current.reason) ? current.reason : "no Excuse"
+        };
+    }
+    renderStudents();
+}
+
+function updateAbsenceReason(name, reasonValue) {
+    if (!canEditExcuseReason()) return;
+    absenceState[name] = {
+        absent: true,
+        reason: reasonValue
+    };
+}
+
+function getAbsenteesList(students) {
+    return students
+        .filter(name => absenceState[name] && absenceState[name].absent)
+        .map(name => ({
+            name: name,
+            reason: absenceState[name].reason || "no Excuse"
+        }));
+}
+
+function getMonthlyStatsForClass(cls, dateVal) {
+    const statsByStudent = {};
+    const students = classesData[cls] || [];
+    students.forEach(name => {
+        statsByStudent[name] = {
+            "Excused": 0,
+            "no Excuse": 0,
+            "Medical": 0
+        };
+    });
+
+    if (!dateVal) return statsByStudent;
+
+    const parts = dateVal.split("-");
+    if (parts.length < 2) return statsByStudent;
+
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const fullDayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+        let dayAbsentees = [];
+        if (fullDayKey === dateVal) {
+            dayAbsentees = getAbsenteesList(students);
+        } else if (monthRecordsCache[fullDayKey] && Array.isArray(monthRecordsCache[fullDayKey].absentees)) {
+            dayAbsentees = monthRecordsCache[fullDayKey].absentees;
+        }
+
+        dayAbsentees.forEach(abs => {
+            if (statsByStudent[abs.name]) {
+                const r = abs.reason || "no Excuse";
+                if (statsByStudent[abs.name][r] !== undefined) {
+                    statsByStudent[abs.name][r] += 1;
+                } else {
+                    statsByStudent[abs.name]["no Excuse"] += 1;
+                }
+            }
+        });
+    }
+
+    return statsByStudent;
+}
+
+function formatMonthlySummary(studentStat) {
+    if (!studentStat) return "";
+    const parts = [];
+    if (studentStat["Excused"] > 0) parts.push(`Excused: ${studentStat["Excused"]}`);
+    if (studentStat["no Excuse"] > 0) parts.push(`no Excuse: ${studentStat["no Excuse"]}`);
+    if (studentStat["Medical"] > 0) parts.push(`Medical: ${studentStat["Medical"]}`);
+    return parts.join(" | ");
+}
+
+function renderStudents() {
+    const cls = document.getElementById("classSelect").value;
+    const dateVal = document.getElementById("dateInput").value;
+    const query = document.getElementById("searchInput").value.trim().toLowerCase();
+    const listEl = document.getElementById("studentsList");
+    const allStudents = cls ? (classesData[cls] || []) : [];
+
+    const filtered = query
+        ? allStudents.filter(name => name.toLowerCase().includes(query))
+        : allStudents;
+
+    listEl.innerHTML = "";
+    const absenteesAll = getAbsenteesList(allStudents);
+    const weeklyStats = getWeeklyAbsenceStatsForClass(cls, dateVal, allStudents);
+
+    document.getElementById("totalCount").textContent = allStudents.length;
+    document.getElementById("absentCount").textContent = absenteesAll.length;
+    document.getElementById("presentCount").textContent = allStudents.length - absenteesAll.length;
+
+    filtered.forEach(name => {
+        const state = absenceState[name] || { absent: false, reason: "no Excuse" };
+        const isAbsent = !!state.absent;
+        const safeNameJs = name.replace(/'/g, "\\'");
+        const badgeText = formatWeeklyAbsenceBadge(weeklyStats[name]);
+        const hasBadge = badgeText.length > 0;
+
+        let reasonHtml = "";
+        if (isAbsent) {
+            if (canEditExcuseReason()) {
+                reasonHtml = `
+                    <select class="excuse-select" onchange="updateAbsenceReason('${safeNameJs}', this.value); renderStudents();">
+                        <option value="no Excuse" ${state.reason === "no Excuse" ? "selected" : ""}>no Excuse</option>
+                        <option value="Excused" ${state.reason === "Excused" ? "selected" : ""}>Excused</option>
+                        <option value="Medical" ${state.reason === "Medical" ? "selected" : ""}>Medical</option>
+                    </select>
+                `;
+            } else {
+                reasonHtml = `<span class="reason-tag-readonly">[${state.reason}]</span>`;
+            }
+        }
+
+        const badgeHtml = hasBadge ? `
+            <div class="weekly-absence-wrap">
+                <span class="weekly-absence-title">عدد أيام غياب الطالب</span>
+                <span class="monthly-summary">${badgeText}</span>
+            </div>
+        ` : "";
+
+        const row = document.createElement("div");
+        row.className = "student-row" + (isAbsent ? " is-absent" : "");
+
+        row.innerHTML = `
+            <div class="student-main">
+                <span class="student-name">${name}</span>
+                ${reasonHtml}
+            </div>
+            <div class="student-actions">
+                <button type="button" class="status-btn ${isAbsent ? "btn-absent" : "btn-present"}" onclick="toggleStudent('${safeNameJs}')">
+                    ${isAbsent ? "Absent ✗" : "Present ✓"}
+                </button>
+                ${badgeHtml}
+            </div>
+        `;
+        listEl.appendChild(row);
+    });
+}
+// إرجاع بداية الأسبوع (الأحد) ونهايته (الخميس) لتاريخ معين بصيغة YYYY-MM-DD
+function getSunToThuWeekRange(dateStr) {
+    const baseDate = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
+    const dayOfWeek = baseDate.getDay(); // 0 = الأحد ... 4 = الخميس ... 6 = السبت
+
+    // إذا كان اليوم جمعة (5) أو سبت (6)، نعتبر الأحد القادم أو الأسبوع الحالي حسب الحاجة؛
+    // هنا نرجع إلى الأحد الخاص بالأسبوع الذي يقع فيه التاريخ المختار:
+    const sunday = new Date(baseDate);
+    sunday.setDate(baseDate.getDate() - dayOfWeek);
+
+    const thursday = new Date(sunday);
+    thursday.setDate(sunday.getDate() + 4);
+
+    const toIso = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+    };
+
+    return {
+        startDate: toIso(sunday),
+        endDate: toIso(thursday)
+    };
+}
+
+// حساب أيام غياب كل طالب خلال الأسبوع الحالي (من الأحد إلى الخميس)
+// يفترض وجود كائن عام أو خريطة تحتوي على سجلات الأيام، مثل attendanceByDate[dateKey][cls][studentName]
+// حساب أيام غياب كل طالب خلال الأسبوع الحالي (من الأحد إلى الخميس)
+// حساب أيام غياب كل طالب خلال الأسبوع الحالي (من الأحد إلى الخميس) من monthRecordsCache
+function getWeeklyAbsenceStatsForClass(cls, dateVal, allStudents) {
+    const weekRange = getWeekDatesRange(dateVal, 0);
+    // أيام الأسبوع الدراسي من الأحد (0) إلى الخميس (4) فقط
+    const sunToThuDates = weekRange.dates.slice(0, 5);
+    const startDate = sunToThuDates[0];
+    const endDate = sunToThuDates[sunToThuDates.length - 1];
+
+    const stats = {};
+    allStudents.forEach(name => {
+        stats[name] = {
+            absentDays: 0,
+            noExcuseDays: 0
+        };
+    });
+
+    const sourceRecords = (typeof monthRecordsCache !== "undefined" && monthRecordsCache) ? monthRecordsCache : {};
+
+    sunToThuDates.forEach(dateKey => {
+        // اليوم المفتوح حالياً (dateVal) نأخذه من absenceState الحية ليعكس أي تعديل فوري
+        if (dateKey === dateVal) return;
+
+        const dayDoc = sourceRecords[dateKey];
+        if (dayDoc && dayDoc.className === cls && Array.isArray(dayDoc.absentees)) {
+            // استخدام Set لضمان عدم احتساب الطالب أكثر من مرة في نفس اليوم
+            const countedToday = new Set();
+            dayDoc.absentees.forEach(item => {
+                const studentName = typeof item === "string" ? item : (item && item.name);
+                const reason = (item && typeof item === "object" && item.reason) ? item.reason : "no Excuse";
+
+                if (studentName && stats[studentName] && !countedToday.has(studentName)) {
+                    countedToday.add(studentName);
+                    stats[studentName].absentDays += 1;
+                    if (reason === "no Excuse") {
+                        stats[studentName].noExcuseDays += 1;
+                    }
+                }
+            });
+        }
+    });
+
+    // إضافة غياب اليوم المفتوح حالياً (dateVal) إذا كان يقع بين الأحد والخميس
+    if (dateVal >= startDate && dateVal <= endDate) {
+        allStudents.forEach(name => {
+            const liveState = absenceState[name];
+            if (liveState && liveState.absent) {
+                stats[name].absentDays += 1;
+                if (!liveState.reason || liveState.reason === "no Excuse") {
+                    stats[name].noExcuseDays += 1;
+                }
+            }
+        });
+    }
+
+    return stats;
+}
+
+// تنسيق نص الشارة الوردية للأسبوع الحالي (أحد – خميس)
+function formatWeeklyAbsenceBadge(studentStat) {
+    if (!studentStat || studentStat.absentDays <= 0) return "";
+    const days = studentStat.absentDays;
+    const noExc = studentStat.noExcuseDays;
+    return noExc > 0 ? `${days} (no Excuse: ${noExc})` : `${days}`;
+}
+
+// تنسيق نص الشارة الوردية للأسبوع الحالي (أحد – خميس)
+function formatWeeklyAbsenceBadge(studentStat) {
+    if (!studentStat || studentStat.absentDays <= 0) return "";
+    const days = studentStat.absentDays;
+    const noExc = studentStat.noExcuseDays;
+    return noExc > 0 ? `${days} (no Excuse: ${noExc})` : `${days}`;
+}
+
+async function toggleWeeklyReport() {
+    const panel = document.getElementById("weeklyPanel");
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) {
+        await renderWeeklySummaryTable();
+    }
+}
+
+async function renderWeeklySummaryTable() {
+    const cls = document.getElementById("classSelect").value;
+    const dateVal = document.getElementById("dateInput").value;
+    const weekOffset = parseInt(document.getElementById("weekOffsetSelect").value || "0", 10);
+    const container = document.getElementById("weeklyTableContainer");
+    const rangeLabel = document.getElementById("weeklyRangeLabel");
+
+    if (!cls || !dateVal) return;
+
+    const { startIso, endIso, dates } = getWeekDatesRange(dateVal, weekOffset);
+    rangeLabel.textContent = `Class: ${cls}  |  Week: ${startIso} to ${endIso}`;
+
+    await loadRecordsForDateRange(cls, startIso, endIso);
+
+    const students = classesData[cls] || [];
+    const perStudent = {};
+    students.forEach(name => {
+        perStudent[name] = {
+            excusedDates: [],
+            noExcuseDates: []
+        };
+    });
+
+    dates.slice(0, 5).forEach(dayStr => {
+        let dayAbsentees = [];
+        if (dayStr === dateVal) {
+            dayAbsentees = getAbsenteesList(students);
+        } else if (monthRecordsCache[dayStr] && Array.isArray(monthRecordsCache[dayStr].absentees)) {
+            dayAbsentees = monthRecordsCache[dayStr].absentees;
+        }
+
+        dayAbsentees.forEach(item => {
+            if (!perStudent[item.name]) {
+                perStudent[item.name] = { excusedDates: [], noExcuseDates: [] };
+            }
+            const shortDate = formatShortDayMonth(dayStr);
+            const r = item.reason || "no Excuse";
+            if (r === "Excused" || r === "Medical") {
+                const label = r === "Medical" ? `${shortDate} (Med)` : shortDate;
+                perStudent[item.name].excusedDates.push(label);
+            } else {
+                perStudent[item.name].noExcuseDates.push(shortDate);
+            }
+        });
+    });
+
+    const rowsData = Object.keys(perStudent)
+        .map(name => ({
+            name,
+            excusedCount: perStudent[name].excusedDates.length,
+            excusedDates: perStudent[name].excusedDates,
+            noExcuseCount: perStudent[name].noExcuseDates.length,
+            noExcuseDates: perStudent[name].noExcuseDates,
+            totalDays: perStudent[name].excusedDates.length + perStudent[name].noExcuseDates.length
+        }))
+        .filter(item => item.totalDays > 0);
+
+    if (!rowsData.length) {
+        container.innerHTML = `<div style="padding:14px; font-size:13px; color:#475569;">No absences recorded in this week (${startIso} to ${endIso}).</div>`;
+        lastWeeklyHtmlExport = "";
+        return;
+    }
+
+    let screenHtml = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:8px 10px; background:#f1f5f9; border-radius:8px; font-size:13px;">
+            <div><strong>Class:</strong> ${cls}</div>
+            <div><strong>Period:</strong> ${startIso} to ${endIso}</div>
+            <div><strong>Absent Students:</strong> ${rowsData.length} / ${students.length}</div>
+        </div>
+        <table id="printableWeeklyTable" class="weekly-table">
+            <thead>
+                <tr>
+                    <th style="width:36px; text-align:center;">#</th>
+                    <th>Student Name</th>
+                    <th style="text-align:center;">Excused</th>
+                    <th>Excused Dates</th>
+                    <th style="text-align:center;">No Excuse</th>
+                    <th>No Excuse Dates</th>
+                    <th style="text-align:center;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let wordHtml = `
+        <div dir="ltr" style="direction:ltr; text-align:left; font-family:Calibri, Arial, sans-serif; color:#0f172a;">
+            <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border:1px solid #94a3b8;">
+                <tr>
+                    <td colspan="3" style="background:#1e3a8a; color:#ffffff; font-size:16pt; font-weight:bold; padding:10px 12px; text-align:center; border:1px solid #1e3a8a;">
+                        Weekly Student Absence Report
+                    </td>
+                </tr>
+                <tr style="background:#eff6ff; font-size:11pt;">
+                    <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Class:</strong> ${cls}</td>
+                    <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Week:</strong> ${startIso} to ${endIso}</td>
+                    <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Absent Students:</strong> ${rowsData.length} of ${students.length}</td>
+                </tr>
+            </table>
+            <table style="width:100%; border-collapse:collapse; font-size:11pt; border:1px solid #94a3b8;">
+                <thead>
+                    <tr style="background:#1e293b; color:#ffffff;">
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:center; width:35px;">#</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:left;">Student Name</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:center; width:75px;">Excused</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:left;">Excused Dates</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:center; width:85px;">No Excuse</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:left;">No Excuse Dates</th>
+                        <th style="border:1px solid #94a3b8; padding:8px; text-align:center; width:60px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    rowsData.forEach((item, idx) => {
+        const rowBg = idx % 2 === 1 ? "#f8fafc" : "#ffffff";
+        const exDatesStr = item.excusedDates.length ? item.excusedDates.join(", ") : "-";
+        const noExDatesStr = item.noExcuseDates.length ? item.noExcuseDates.join(", ") : "-";
+
+        screenHtml += `
+            <tr>
+                <td style="text-align:center; font-weight:bold;">${idx + 1}</td>
+                <td><strong>${item.name}</strong></td>
+                <td style="text-align:center;">${item.excusedCount > 0 ? `<span class="pill-excused">${item.excusedCount}</span>` : "0"}</td>
+                <td class="dates-sub">${exDatesStr}</td>
+                <td style="text-align:center;">${item.noExcuseCount > 0 ? `<span class="pill-noexcuse">${item.noExcuseCount}</span>` : "0"}</td>
+                <td class="dates-sub">${noExDatesStr}</td>
+                <td style="text-align:center; font-weight:bold;">${item.totalDays}</td>
+            </tr>
+        `;
+
+        wordHtml += `
+            <tr style="background:${rowBg};">
+                <td style="border:1px solid #94a3b8; padding:7px 8px; text-align:center;">${idx + 1}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px; font-weight:bold;">${item.name}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px; text-align:center; color:#92400e; font-weight:bold;">${item.excusedCount}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px;">${exDatesStr}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px; text-align:center; color:#991b1b; font-weight:bold;">${item.noExcuseCount}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px;">${noExDatesStr}</td>
+                <td style="border:1px solid #94a3b8; padding:7px 8px; text-align:center; font-weight:bold;">${item.totalDays}</td>
+            </tr>
+        `;
+    });
+
+    screenHtml += `</tbody></table>`;
+    wordHtml += `</tbody></table></div>`;
+
+    container.innerHTML = screenHtml;
+    lastWeeklyHtmlExport = wordHtml;
+}
+
+function copyWeeklyFormattedTable() {
+    if (!lastWeeklyHtmlExport) {
+        alert("No absence records to copy for this week.");
+        return;
+    }
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = lastWeeklyHtmlExport;
+    tempDiv.style.position = "fixed";
+    tempDiv.style.top = "0";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.opacity = "0.01";
+    document.body.appendChild(tempDiv);
+
+    let copied = false;
+    try {
+        const range = document.createRange();
+        range.selectNodeContents(tempDiv);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        copied = document.execCommand("copy");
+        sel.removeAllRanges();
+    } catch (e) {
+        copied = false;
+    }
+
+    document.body.removeChild(tempDiv);
+
+    if (copied) {
+        alert("Table copied! Open Word and press Ctrl+V.");
+    } else {
+        printWeeklyReport();
+    }
+}
+
+function printWeeklyReport() {
+    if (!lastWeeklyHtmlExport) {
+        alert("No absence records to print or save as PDF for this week.");
+        return;
+    }
+    const win = window.open("", "_blank");
+    if (!win) {
+        alert("Please allow pop-ups in your browser to print or save as PDF.");
+        return;
+    }
+    win.document.write(`
+        <!DOCTYPE html>
+        <html dir="ltr" lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Weekly Student Absence Report</title>
+            <style>
+                body { margin: 20px; font-family: Calibri, Arial, sans-serif; }
+                @media print { body { margin: 10px; } }
+            </style>
+        </head>
+        <body>
+            ${lastWeeklyHtmlExport}
+            <script>
+                window.onload = function() {
+                    setTimeout(function() { window.print(); }, 200);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+async function saveAttendance() {
+    const cls = document.getElementById("classSelect").value;
+    const dateVal = document.getElementById("dateInput").value;
+    if (!cls || !dateVal) return;
+
+    const students = classesData[cls] || [];
+    const absentees = getAbsenteesList(students);
+    const monthKey = dateVal.slice(0, 7);
+
+    const record = {
+        className: cls,
+        date: dateVal,
+        monthKey: monthKey,
+        total: students.length,
+        absentCount: absentees.length,
+        absentees: absentees,
+        updatedAt: new Date().toISOString(),
+        updatedByRole: currentRole,
+        updatedByTeacherId: activeTeacherId || null
+    };
+
+    localStorage.setItem(getLocalDayKey(cls, dateVal), JSON.stringify(record));
+    monthRecordsCache[dateVal] = record;
+
+    if (db) {
+        try {
+            await db.collection("AttendanceRecords").doc(getRecordDocId(cls, dateVal)).set(record);
+            setSyncStatus("Status: Saved to Cloud Database ✓");
+        } catch (e) {
+            console.error("Error saving attendance to Firestore:", e);
+            setSyncStatus("Status: Saved locally — cloud sync failed");
+        }
+    }
+
+    renderStudents();
+    if (document.getElementById("weeklyPanel").classList.contains("open")) {
+        await renderWeeklySummaryTable();
+    }
+    alert(`Saved attendance for (${cls}) on ${dateVal}\nAbsent count: ${absentees.length}`);
+}
+
+function copyAbsentReport() {
+    const cls = document.getElementById("classSelect").value;
+    const dateVal = document.getElementById("dateInput").value;
+    const students = classesData[cls] || [];
+    const absentees = getAbsenteesList(students);
+
+    const reportText =
+        `📅 Date: ${dateVal}\n` +
+        `🏫 Class: ${cls}\n` +
+        `❌ Absent (${absentees.length}):\n` +
+        (absentees.length
+            ? absentees.map((item, i) => `${i + 1}. ${item.name} — [${item.reason}]`).join("\n")
+            : "No absences");
+
+    const reportBox = document.getElementById("reportArea");
+    reportBox.textContent = reportText;
+    reportBox.style.display = "block";
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(reportText).catch(() => {});
+    }
+}
+
+init();
+</script>
+
+</body>
+</html>
