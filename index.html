@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Attendance — Weekly Table & Cloud Sync</title>
+    <title>Classy Attendance — Weekly Table & Cloud Sync</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -425,6 +425,35 @@
             gap: 5px;
             cursor: pointer;
         }
+@media print {
+    /* إخفاء كل شيء في الصفحة عدا حاوية طباعة الفصول */
+{
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body.printing-all-classes > *:not(#allClassesPrintContainer) {
+        display: none !important;
+    }
+    body.printing-all-classes #allClassesPrintContainer {
+        display: block !important;
+        width: 100%;
+    }
+    
+    /* إلغاء قطع الصفحة، واستبداله بمسافة تفصل بين الفصول (يعادل سطرين فارغين) */
+    .class-monthly-page {
+        page-break-after: auto !important;
+        break-after: auto !important;
+        margin-bottom: 40px !important; /* مسافة كافية بمقدار سطرين فارغين تقريباً */
+        display: block;
+    }
+/* ضمان وضوح الهيدر حتى لو قام المتصفح بإلغاء الخلفيات */
+    #allClassesPrintContainer th,
+    #allClassesPrintContainer tr:first-child td {
+        color: #000000 !important;
+        background: #e2e8f0 !important;
+        font-weight: bold !important;
+    }
+}
         .teacher-item {
             display: flex;
             align-items: center;
@@ -455,7 +484,7 @@
 <div class="app">
     <div class="top-bar">
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <h2>📋 Class Attendance</h2>
+        <h2>📋 Classy Attendance</h2>
         <span id="roleBadge" class="role-badge">Teacher</span>
     </div>
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -556,6 +585,8 @@
             <button type="button" class="save-btn" onclick="saveAttendance()">💾 Save Attendance</button>
             <button type="button" class="weekly-btn" onclick="toggleWeeklyReport()">📊 Weekly Absence Summary Table</button>
             <button type="button" class="secondary-btn" onclick="copyAbsentReport()">📋 Copy Daily Report</button>
+<button type="button" onclick="printAllClassesMonthlyPdf()">Print All Classes (Month PDF)</button>
+<div id="allClassesPrintContainer" style="display:none;"></div>
             <button type="button" class="secondary-btn" onclick="resetAllPresent()">↺ All Present</button>
         </div>
 
@@ -1573,15 +1604,34 @@ async function toggleWeeklyReport() {
         await renderWeeklySummaryTable();
     }
 }
+function getMonthSunToThuDates(dateVal) {
+    const [yearStr, monthStr] = dateVal.split("-");
+    const year = parseInt(yearStr, 10);
+    const monthIndex = parseInt(monthStr, 10) - 1; // 0-based
+    const result = [];
+
+    const cursor = new Date(year, monthIndex, 1);
+    while (cursor.getMonth() === monthIndex) {
+        const dayOfWeek = cursor.getDay(); // 0 = Sun ... 4 = Thu
+        if (dayOfWeek >= 0 && dayOfWeek <= 4) {
+            const yyyy = cursor.getFullYear();
+            const mm = String(cursor.getMonth() + 1).padStart(2, "0");
+            const dd = String(cursor.getDate()).padStart(2, "0");
+            result.push(`${yyyy}-${mm}-${dd}`);
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return result;
+}
 function populateMonthWeekOptions(dateVal) {
     const selectEl = document.getElementById("weekOffsetSelect");
     if (!selectEl || !dateVal) return;
 
     const [yearStr, monthStr] = dateVal.split("-");
     const targetYear = parseInt(yearStr, 10);
-    const targetMonth = parseInt(monthStr, 10); // 1 - 12
+    const targetMonth = parseInt(monthStr, 10);
 
-    // نبحث عن أوفست الأسابيع من -6 إلى +2 بالنسبة للتاريخ المحدد لتغطية الشهر بالكامل
     const candidates = [];
     const seenRanges = new Set();
 
@@ -1591,7 +1641,6 @@ function populateMonthWeekOptions(dateVal) {
         const sunDate = sunToThu[0];
         const thuDate = sunToThu[4];
 
-        // نتحقق هل يقع الأحد أو الخميس (أو أي يوم من الأحد للخميس) داخل الشهر المختار
         const overlapsMonth = sunToThu.some(dStr => {
             const [y, m] = dStr.split("-").map(Number);
             return y === targetYear && m === targetMonth;
@@ -1601,37 +1650,38 @@ function populateMonthWeekOptions(dateVal) {
         if (overlapsMonth && !seenRanges.has(rangeKey)) {
             seenRanges.add(rangeKey);
             candidates.push({
-                offset,
+                offset: String(offset),
                 sunDate,
-                thuDate,
-                label: `${formatShortDayMonth(sunDate)} – ${formatShortDayMonth(thuDate)} (Sun–Thu)`
+                label: `${formatShortDayMonth(sunDate)} – ${formatShortDayMonth(thuDate)} (Sun–Thu)${offset === 0 ? " [Current]" : ""}`
             });
         }
     }
 
-    // نرتب الأسابيع تصاعدياً من بداية الشهر إلى نهايته
     candidates.sort((a, b) => a.sunDate.localeCompare(b.sunDate));
 
     const prevValue = selectEl.value;
     selectEl.innerHTML = "";
 
+    // خيار الشهر الكامل
+    const monthOpt = document.createElement("option");
+    monthOpt.value = "month";
+    monthOpt.textContent = `Full Month (${targetMonth}/${targetYear}) [Sun–Thu]`;
+    selectEl.appendChild(monthOpt);
+
+    // خيارات الأسابيع داخل الشهر
     candidates.forEach(item => {
         const opt = document.createElement("option");
-        opt.value = String(item.offset);
+        opt.value = item.offset;
         opt.textContent = item.label;
-        if (item.offset === 0) {
-            opt.textContent += " [Current]";
-        }
         selectEl.appendChild(opt);
     });
 
-    // نحتفظ بالاختيار السابق إن كان موجوداً، وإلا نختار الأسبوع الحالي (0) أو أول أسبوع متاح
     const hasPrev = Array.from(selectEl.options).some(o => o.value === prevValue);
     if (hasPrev) {
         selectEl.value = prevValue;
     } else {
         const hasCurrent = Array.from(selectEl.options).some(o => o.value === "0");
-        selectEl.value = hasCurrent ? "0" : (selectEl.options[0]?.value || "0");
+        selectEl.value = hasCurrent ? "0" : (selectEl.options[0]?.value || "month");
     }
 }
 async function renderWeeklySummaryTable() {
@@ -1644,11 +1694,40 @@ async function renderWeeklySummaryTable() {
 
     populateMonthWeekOptions(dateVal);
 
-    const weekOffset = parseInt(document.getElementById("weekOffsetSelect").value || "0", 10);
-    const { startIso, endIso, dates } = getWeekDatesRange(dateVal, weekOffset);
-    rangeLabel.textContent = `Class: ${cls}  |  Week: ${startIso} to ${endIso}`;
+    const selectedPeriod = document.getElementById("weekOffsetSelect").value || "0";
+    const isMonthMode = selectedPeriod === "month";
 
-    await loadRecordsForDateRange(cls, startIso, endIso);
+    let startIso = "";
+    let endIso = "";
+    let targetDates = [];
+    let periodLabelText = "";
+    let reportTitleText = "Weekly Student Absence Report";
+
+    if (isMonthMode) {
+        targetDates = getMonthSunToThuDates(dateVal);
+        if (!targetDates.length) return;
+        startIso = targetDates[0];
+        endIso = targetDates[targetDates.length - 1];
+        periodLabelText = `Month (${startIso} to ${endIso})`;
+        reportTitleText = "Monthly Student Absence Report";
+
+        if (typeof loadMonthRecords === "function") {
+            await loadMonthRecords(cls, dateVal);
+        } else if (typeof loadRecordsForDateRange === "function") {
+            await loadRecordsForDateRange(cls, startIso, endIso);
+        }
+    } else {
+        const weekOffset = parseInt(selectedPeriod, 10);
+        const weekRange = getWeekDatesRange(dateVal, weekOffset);
+        startIso = weekRange.startIso;
+        endIso = weekRange.endIso;
+        targetDates = weekRange.dates.slice(0, 5);
+        periodLabelText = `Week (${startIso} to ${endIso})`;
+
+        await loadRecordsForDateRange(cls, startIso, endIso);
+    }
+
+    rangeLabel.textContent = `Class: ${cls}  |  ${periodLabelText}`;
 
     const students = classesData[cls] || [];
     const perStudent = {};
@@ -1659,7 +1738,7 @@ async function renderWeeklySummaryTable() {
         };
     });
 
-    dates.slice(0, 5).forEach(dayStr => {
+    targetDates.forEach(dayStr => {
         let dayAbsentees = [];
         if (dayStr === dateVal) {
             dayAbsentees = getAbsenteesList(students);
@@ -1694,7 +1773,7 @@ async function renderWeeklySummaryTable() {
         .filter(item => item.totalDays > 0);
 
     if (!rowsData.length) {
-        container.innerHTML = `<div style="padding:14px; font-size:13px; color:#475569;">No absences recorded in this week (${startIso} to ${endIso}).</div>`;
+        container.innerHTML = `<div style="padding:14px; font-size:13px; color:#475569;">No absences recorded in this ${isMonthMode ? "month" : "week"} (${startIso} to ${endIso}).</div>`;
         lastWeeklyHtmlExport = "";
         return;
     }
@@ -1725,12 +1804,12 @@ async function renderWeeklySummaryTable() {
             <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border:1px solid #94a3b8;">
                 <tr>
                     <td colspan="3" style="background:#1e3a8a; color:#ffffff; font-size:16pt; font-weight:bold; padding:10px 12px; text-align:center; border:1px solid #1e3a8a;">
-                        Weekly Student Absence Report
+                        ${reportTitleText}
                     </td>
                 </tr>
                 <tr style="background:#eff6ff; font-size:11pt;">
                     <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Class:</strong> ${cls}</td>
-                    <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Week:</strong> ${startIso} to ${endIso}</td>
+                    <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Period:</strong> ${startIso} to ${endIso}</td>
                     <td style="padding:8px 10px; border:1px solid #94a3b8;"><strong>Absent Students:</strong> ${rowsData.length} of ${students.length}</td>
                 </tr>
             </table>
@@ -1784,6 +1863,167 @@ async function renderWeeklySummaryTable() {
 
     container.innerHTML = screenHtml;
     lastWeeklyHtmlExport = wordHtml;
+}
+
+async function printAllClassesMonthlyPdf() {
+    const dateVal = document.getElementById("dateInput")?.value;
+    if (!dateVal) return;
+
+    const allowedClasses = (typeof getAllowedClassesForCurrentUser === "function")
+        ? getAllowedClassesForCurrentUser()
+        : Object.keys(classesData || {});
+
+    if (!allowedClasses.length) return;
+
+    const monthDates = getMonthSunToThuDates(dateVal);
+    if (!monthDates.length) return;
+
+    const startIso = monthDates[0];
+    const endIso = monthDates[monthDates.length - 1];
+    const [yearStr, monthStr] = dateVal.split("-");
+    const monthTitle = `${monthStr}/${yearStr}`;
+
+    const originalClass = document.getElementById("classSelect")?.value || "";
+    const originalCache = { ...monthRecordsCache };
+
+    let printContainer = document.getElementById("allClassesPrintContainer");
+    if (!printContainer) {
+        printContainer = document.createElement("div");
+        printContainer.id = "allClassesPrintContainer";
+    }
+    if (printContainer.parentElement !== document.body) {
+        document.body.appendChild(printContainer);
+    }
+
+    let fullHtml = "";
+
+    for (const cls of allowedClasses) {
+        await loadMonthRecords(cls, dateVal);
+
+        const students = classesData[cls] || [];
+        const perStudent = {};
+        students.forEach(name => {
+            perStudent[name] = { excusedDates: [], noExcuseDates: [] };
+        });
+
+        monthDates.forEach(dayStr => {
+            let dayAbsentees = [];
+            if (dayStr === dateVal && cls === originalClass && typeof getAbsenteesList === "function") {
+                dayAbsentees = getAbsenteesList(students);
+            } else if (monthRecordsCache[dayStr] && Array.isArray(monthRecordsCache[dayStr].absentees)) {
+                dayAbsentees = monthRecordsCache[dayStr].absentees;
+            }
+
+            dayAbsentees.forEach(item => {
+                const studentName = typeof item === "string" ? item : item?.name;
+                if (!studentName) return;
+                if (!perStudent[studentName]) {
+                    perStudent[studentName] = { excusedDates: [], noExcuseDates: [] };
+                }
+                const shortDate = formatShortDayMonth(dayStr);
+                const reason = (typeof item === "object" && item?.reason) ? item.reason : "no Excuse";
+                if (reason === "Excused" || reason === "Medical") {
+                    const label = reason === "Medical" ? `${shortDate} (Med)` : shortDate;
+                    perStudent[studentName].excusedDates.push(label);
+                } else {
+                    perStudent[studentName].noExcuseDates.push(shortDate);
+                }
+            });
+        });
+
+        const rowsData = Object.keys(perStudent)
+            .map(name => ({
+                name,
+                excusedCount: perStudent[name].excusedDates.length,
+                excusedDates: perStudent[name].excusedDates,
+                noExcuseCount: perStudent[name].noExcuseDates.length,
+                noExcuseDates: perStudent[name].noExcuseDates,
+                totalDays: perStudent[name].excusedDates.length + perStudent[name].noExcuseDates.length
+            }))
+            .filter(item => item.totalDays > 0);
+
+        let rowsHtml = "";
+        if (!rowsData.length) {
+            rowsHtml = `
+                <tr>
+                    <td colspan="7" style="border:1.5px solid #1e293b; padding:12px; text-align:center; color:#000000; font-weight:bold;">
+                        No absences recorded for Class ${cls} in ${monthTitle}.
+                    </td>
+                </tr>
+            `;
+        } else {
+            rowsData.forEach((item, idx) => {
+                const rowBg = idx % 2 === 1 ? "#f8fafc" : "#ffffff";
+                const exDatesStr = item.excusedDates.length ? item.excusedDates.join(", ") : "-";
+                const noExDatesStr = item.noExcuseDates.length ? item.noExcuseDates.join(", ") : "-";
+
+                rowsHtml += `
+                    <tr style="background:${rowBg}; color:#000000;">
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; text-align:center; font-weight:bold;">${idx + 1}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; font-weight:bold;">${item.name}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; text-align:center; font-weight:bold;">${item.excusedCount}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; font-weight:500;">${exDatesStr}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; text-align:center; font-weight:bold;">${item.noExcuseCount}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; font-weight:500;">${noExDatesStr}</td>
+                        <td style="border:1.5px solid #1e293b; padding:6px 8px; text-align:center; font-weight:black; font-size:11pt;">${item.totalDays}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        fullHtml += `
+            <div class="class-monthly-page" dir="ltr" style="direction:ltr; text-align:left; font-family:Calibri, Arial, sans-serif; color:#000000; margin-bottom:40px;">
+                <!-- عنوان التقرير بلون أزرق غامق وواضح جداً -->
+                <table style="width:100%; border-collapse:collapse; margin-bottom:8px; border:2px solid #1e293b;">
+                    <tr>
+                        <td colspan="3" style="background:#1e3a8a; color:#ffffff; font-size:16pt; font-weight:black; padding:12px; text-align:center; border:2px solid #1e3a8a; text-transform:uppercase; letter-spacing:0.5px;">
+                            Monthly Student Absence Report — All Classes (${monthTitle})
+                        </td>
+                    </tr>
+                    <!-- تفاصيل الفصل بلون أسود قوي وبدون باهت -->
+                    <tr style="background:#f1f5f9; font-size:11pt; color:#000000; font-weight:bold;">
+                        <td style="padding:8px 10px; border:1.5px solid #1e293b;"><strong>Class:</strong> ${cls}</td>
+                        <td style="padding:8px 10px; border:1.5px solid #1e293b;"><strong>Period:</strong> ${startIso} to ${endIso} (Sun–Thu)</td>
+                        <td style="padding:8px 10px; border:1.5px solid #1e293b;"><strong>Absent Students:</strong> ${rowsData.length} / ${students.length}</td>
+                    </tr>
+                </table>
+                
+                <!-- جدول الغياب بحدود قوية وعناوين سوداء بالكامل -->
+                <table style="width:100%; border-collapse:collapse; font-size:11pt; border:2px solid #1e293b;">
+                    <thead>
+                        <tr style="background:#1e293b; color:#ffffff; font-weight:black;">
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:center; width:40px;">#</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:left;">Student Name</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:center; width:80px;">Excused</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:left;">Excused Dates</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:center; width:90px;">No Excuse</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:left;">No Excuse Dates</th>
+                            <th style="border:1.5px solid #1e293b; padding:8px; text-align:center; width:65px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    monthRecordsCache = originalCache;
+    if (originalClass && typeof loadMonthRecords === "function") {
+        await loadMonthRecords(originalClass, dateVal);
+    }
+
+    printContainer.innerHTML = fullHtml;
+    document.body.classList.add("printing-all-classes");
+
+    window.onafterprint = () => {
+        document.body.classList.remove("printing-all-classes");
+        printContainer.innerHTML = "";
+        window.onafterprint = null;
+    };
+
+    window.print();
 }
 
 function copyWeeklyFormattedTable() {
